@@ -2,6 +2,20 @@ defmodule SocialScribe.Accounts.UserCredential do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          token: String.t(),
+          uid: String.t(),
+          provider: String.t(),
+          refresh_token: String.t() | nil,
+          expires_at: DateTime.t(),
+          email: String.t(),
+          user_id: integer(),
+          user: Ecto.Schema.t() | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
+
   schema "user_credentials" do
     field :token, :string
     field :uid, :string
