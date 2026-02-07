@@ -47,11 +47,22 @@ defmodule SocialScribe.AIContentGenerator do
 
   @impl SocialScribe.AIContentGeneratorApi
   def generate_hubspot_suggestions(meeting) do
+    generate_crm_suggestions(meeting, :hubspot)
+  end
+
+  @impl SocialScribe.AIContentGeneratorApi
+  def generate_salesforce_suggestions(meeting) do
+    generate_crm_suggestions(meeting, :salesforce)
+  end
+
+  defp generate_crm_suggestions(meeting, crm_type) do
     case Meetings.generate_prompt_for_meeting(meeting) do
       {:error, reason} ->
         {:error, reason}
 
       {:ok, meeting_prompt} ->
+        fields_list = get_crm_fields(crm_type)
+
         prompt = """
         You are an AI assistant that extracts contact information updates from meeting transcripts.
 
@@ -63,16 +74,14 @@ defmodule SocialScribe.AIContentGenerator do
         - Company name (company)
         - Job title/role (jobtitle)
         - Physical address details (address, city, state, zip, country)
-        - Website URLs (website)
-        - LinkedIn profile (linkedin_url)
-        - Twitter handle (twitter_handle)
+        #{if crm_type == :hubspot, do: "- Website URLs (website)\n        - LinkedIn profile (linkedin_url)\n        - Twitter handle (twitter_handle)", else: ""}
 
         IMPORTANT: Only extract information that is EXPLICITLY mentioned in the transcript. Do not infer or guess.
 
         The transcript includes timestamps in [MM:SS] format at the start of each line.
 
         Return your response as a JSON array of objects. Each object should have:
-        - "field": the CRM field name (use exactly: firstname, lastname, email, phone, mobilephone, company, jobtitle, address, city, state, zip, country, website, linkedin_url, twitter_handle)
+        - "field": the CRM field name (use exactly: #{fields_list})
         - "value": the extracted value
         - "context": a brief quote of where this was mentioned
         - "timestamp": the timestamp in MM:SS format where this was mentioned
@@ -93,7 +102,7 @@ defmodule SocialScribe.AIContentGenerator do
 
         case call_gemini(prompt) do
           {:ok, response} ->
-            parse_hubspot_suggestions(response)
+            parse_crm_suggestions(response)
 
           {:error, reason} ->
             {:error, reason}
@@ -101,7 +110,20 @@ defmodule SocialScribe.AIContentGenerator do
     end
   end
 
+  defp get_crm_fields(:hubspot) do
+    "firstname, lastname, email, phone, mobilephone, company, jobtitle, address, city, state, zip, country, website, linkedin_url, twitter_handle"
+  end
+
+  defp get_crm_fields(:salesforce) do
+    "firstname, lastname, email, phone, mobilephone, company, jobtitle, address, city, state, zip, country"
+  end
+
   defp parse_hubspot_suggestions(response) do
+    # Delegate to the generic parser
+    parse_crm_suggestions(response)
+  end
+
+  defp parse_crm_suggestions(response) do
     # Clean up the response - remove markdown code blocks if present
     cleaned =
       response

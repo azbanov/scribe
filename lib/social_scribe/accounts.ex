@@ -119,6 +119,14 @@ defmodule SocialScribe.Accounts do
     Repo.all(UserCredential)
   end
 
+  def list_credentials_by_provider(provider) when is_binary(provider) do
+    query =
+      from c in UserCredential,
+        where: c.provider == ^provider
+
+    Repo.all(query)
+  end
+
   def list_user_credentials(user, where \\ []) do
     query =
       from c in UserCredential,
@@ -309,11 +317,28 @@ defmodule SocialScribe.Accounts do
     end
   end
 
+  def find_or_create_salesforce_credential(user, attrs) do
+    case get_user_credential(user, "salesforce", attrs.uid) do
+      nil ->
+        create_user_credential(attrs)
+
+      %UserCredential{} = credential ->
+        update_user_credential(credential, attrs)
+    end
+  end
+
   @doc """
   Gets the user's HubSpot credential if one exists.
   """
   def get_user_hubspot_credential(user_id) do
     Repo.get_by(UserCredential, user_id: user_id, provider: "hubspot")
+  end
+
+  @doc """
+  Gets the user's Salesforce credential if one exists.
+  """
+  def get_user_salesforce_credential(user_id) do
+    Repo.get_by(UserCredential, user_id: user_id, provider: "salesforce")
   end
 
   defp get_user_by_oauth_uid(provider, uid) do

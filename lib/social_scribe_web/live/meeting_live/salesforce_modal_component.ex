@@ -1,4 +1,4 @@
-defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
+defmodule SocialScribeWeb.MeetingLive.SalesforceModalComponent do
   use SocialScribeWeb, :live_component
 
   import SocialScribeWeb.ModalComponents
@@ -6,13 +6,13 @@ defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
   @impl true
   def render(assigns) do
     assigns = assign(assigns, :patch, ~p"/dashboard/meetings/#{assigns.meeting}")
-    assigns = assign_new(assigns, :modal_id, fn -> "hubspot-modal-wrapper" end)
+    assigns = assign_new(assigns, :modal_id, fn -> "salesforce-modal-wrapper" end)
 
     ~H"""
     <div class="space-y-6">
       <div>
         <h2 id={"#{@modal_id}-title"} class="text-xl font-medium tracking-tight text-slate-900">
-          Update in HubSpot
+          Update in Salesforce
         </h2>
         <p id={"#{@modal_id}-description"} class="mt-2 text-base font-light leading-7 text-slate-500">
           Here are suggested updates to sync with your integrations based on this
@@ -71,8 +71,8 @@ defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
 
             <.modal_footer
               cancel_patch={@patch}
-              submit_text="Update HubSpot"
-              submit_class="bg-hubspot-button hover:bg-hubspot-button-hover"
+              submit_text="Update Salesforce"
+              submit_class="bg-[#00a1e0] hover:bg-[#0089c2]"
               disabled={@selected_count == 0}
               loading={@loading}
               loading_text="Updating..."
@@ -117,7 +117,7 @@ defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
 
     if String.length(query) >= 2 do
       socket = assign(socket, searching: true, error: nil, query: query, dropdown_open: true)
-      send(self(), {:hubspot_search, query, socket.assigns.credential})
+      send(self(), {:salesforce_search, query, socket.assigns.credential})
       {:noreply, socket}
     else
       {:noreply, assign(socket, query: query, contacts: [], dropdown_open: query != "")}
@@ -145,7 +145,7 @@ defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
       query =
         "#{socket.assigns.selected_contact.firstname} #{socket.assigns.selected_contact.lastname}"
 
-      send(self(), {:hubspot_search, query, socket.assigns.credential})
+      send(self(), {:salesforce_search, query, socket.assigns.credential})
       {:noreply, socket}
     end
   end
@@ -167,7 +167,8 @@ defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
 
       send(
         self(),
-        {:generate_suggestions, contact, socket.assigns.meeting, socket.assigns.credential}
+        {:generate_salesforce_suggestions, contact, socket.assigns.meeting,
+         socket.assigns.credential}
       )
 
       {:noreply, socket}
@@ -227,7 +228,7 @@ defmodule SocialScribeWeb.MeetingLive.HubspotModalComponent do
 
     send(
       self(),
-      {:apply_hubspot_updates, updates, socket.assigns.selected_contact,
+      {:apply_salesforce_updates, updates, socket.assigns.selected_contact,
        socket.assigns.credential}
     )
 
