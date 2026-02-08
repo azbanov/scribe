@@ -1,0 +1,42 @@
+# fly.toml app configuration file generated for scribe-red-sunset-3370 on 2026-02-08T18:19:16+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'scribe-red-sunset-3370'
+primary_region = 'fra'
+kill_signal = 'SIGTERM'
+
+[build]
+
+[deploy]
+  release_command = '/app/bin/migrate'
+
+[env]
+  PHX_HOST = 'scribe-red-sunset-3370.fly.dev'
+  PORT = '8080'
+  POOL_SIZE = '5'
+  ECTO_IPV6 = 'true'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024
+
+[[statics]]
+  guest_path = "/app/priv/static"
+  url_prefix = "/static/"

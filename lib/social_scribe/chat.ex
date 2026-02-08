@@ -8,6 +8,7 @@ defmodule SocialScribe.Chat do
   alias SocialScribe.HubspotApiBehaviour, as: HubspotApi
   alias SocialScribe.SalesforceApiBehaviour, as: SalesforceApi
   alias SocialScribe.AIContentGeneratorApi
+  require Logger
 
   @doc """
   Asks a question about a contact using meeting transcript data and CRM information.
@@ -24,8 +25,13 @@ defmodule SocialScribe.Chat do
           {:ok, %{answer: answer, sources: sources}}
 
         {:error, reason} ->
+          Logger.error("Chat.ask_question - AI response error: #{inspect(reason)}")
           {:error, reason}
       end
+    else
+      {:error, reason} ->
+        Logger.error("Chat.ask_question - error in pipeline: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 

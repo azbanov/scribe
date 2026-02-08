@@ -3,6 +3,7 @@ defmodule SocialScribeWeb.ChatLive do
 
   alias SocialScribe.Accounts
   alias SocialScribe.Chat
+  require Logger
 
   @impl true
   def mount(_params, _session, socket) do
@@ -88,9 +89,18 @@ defmodule SocialScribeWeb.ChatLive do
     contact =
       Enum.find(socket.assigns.contact_results, &(&1.id == contact_id && &1.provider == provider))
 
+    welcome_message = %{
+      role: :assistant,
+      content: "I can answer questions about your meetings and CRM data – just ask!",
+      timestamp: DateTime.utc_now(),
+      sources: []
+    }
+
     {:noreply,
      assign(socket,
        selected_contact: contact,
+       messages: [welcome_message],
+       loading: false,
        contact_search_open: false,
        contact_query: "",
        contact_results: []
@@ -153,11 +163,25 @@ defmodule SocialScribeWeb.ChatLive do
           |> update(:messages, &(&1 ++ [ai_msg]))
           |> assign(:loading, false)
 
-        {:error, _reason} ->
+        {:error, reason} ->
+          error_message =
+            case reason do
+              :no_contact_selected ->
+                "Please select a contact using the @ button before asking questions."
+
+              :unsupported_provider ->
+                "This CRM provider is not supported."
+
+              :api_error ->
+                "There was an error connecting to your CRM. Please check your connection."
+
+              _ ->
+                "I'm sorry, I encountered an error: #{inspect(reason)}. Please try again."
+            end
+
           error_msg = %{
             role: :assistant,
-            content:
-              "I'm sorry, I couldn't process that request. Please make sure you've selected a contact using the @ button and try again.",
+            content: error_message,
             timestamp: DateTime.utc_now(),
             sources: []
           }
@@ -179,7 +203,7 @@ defmodule SocialScribeWeb.ChatLive do
           {:ok, contacts} ->
             Enum.map(contacts, &Map.put(&1, :provider, credential.provider))
 
-          {:error, _} ->
+          {:error, _reason} ->
             []
         end
       end)
