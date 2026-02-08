@@ -118,11 +118,6 @@ defmodule SocialScribe.AIContentGenerator do
     "salutation, firstname, lastname, email, phone, homephone, mobilephone, otherphone, fax, jobtitle, department, birthdate, assistant, assistantphone, leadsource, description, address, city, state, zip, country, otherstreet, othercity, otherstate, otherzip, othercountry"
   end
 
-  defp parse_hubspot_suggestions(response) do
-    # Delegate to the generic parser
-    parse_crm_suggestions(response)
-  end
-
   defp parse_crm_suggestions(response) do
     # Clean up the response - remove markdown code blocks if present
     cleaned =

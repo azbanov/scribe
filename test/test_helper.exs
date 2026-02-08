@@ -20,3 +20,6 @@ Application.put_env(
 )
 
 Application.put_env(:social_scribe, :hubspot_api, SocialScribe.HubspotApiMock)
+
+Mox.defmock(SocialScribe.SalesforceApiMock, for: SocialScribe.SalesforceApiBehaviour)
+Application.put_env(:social_scribe, :salesforce_api, SocialScribe.SalesforceApiMock)

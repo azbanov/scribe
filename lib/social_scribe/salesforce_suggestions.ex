@@ -9,18 +9,32 @@ defmodule SocialScribe.SalesforceSuggestions do
   alias SocialScribe.Accounts.UserCredential
 
   @field_labels %{
+    "salutation" => "Salutation",
     "firstname" => "First Name",
     "lastname" => "Last Name",
     "email" => "Email",
     "phone" => "Phone",
+    "homephone" => "Home Phone",
     "mobilephone" => "Mobile Phone",
-    "company" => "Company",
+    "otherphone" => "Other Phone",
+    "fax" => "Fax",
     "jobtitle" => "Job Title",
+    "department" => "Department",
+    "birthdate" => "Birthdate",
+    "assistant" => "Assistant",
+    "assistantphone" => "Assistant Phone",
+    "leadsource" => "Lead Source",
+    "description" => "Description",
     "address" => "Address",
     "city" => "City",
     "state" => "State",
     "zip" => "ZIP Code",
-    "country" => "Country"
+    "country" => "Country",
+    "otherstreet" => "Other Street",
+    "othercity" => "Other City",
+    "otherstate" => "Other State",
+    "otherzip" => "Other ZIP Code",
+    "othercountry" => "Other Country"
   }
 
   @doc """
