@@ -8,6 +8,8 @@ defmodule SocialScribeWeb.AuthController do
 
   require Logger
 
+  @seconds_in_hour 3600
+
   @doc """
   Handles the initial request to the provider (e.g., Google).
   Ueberauth's plug will redirect the user to the provider's consent page.
@@ -114,7 +116,7 @@ defmodule SocialScribeWeb.AuthController do
       refresh_token: auth.credentials.refresh_token,
       expires_at:
         (auth.credentials.expires_at && DateTime.from_unix!(auth.credentials.expires_at)) ||
-          DateTime.add(DateTime.utc_now(), 3600, :second),
+          DateTime.add(DateTime.utc_now(), @seconds_in_hour, :second),
       email: auth.info.email
     }
 
@@ -144,6 +146,8 @@ defmodule SocialScribeWeb.AuthController do
 
     user_id = to_string(auth.uid)
 
+    instance_url = get_in(auth.credentials.other, [:instance_url]) || ""
+
     credential_attrs = %{
       user_id: user.id,
       provider: "salesforce",
@@ -152,8 +156,9 @@ defmodule SocialScribeWeb.AuthController do
       refresh_token: auth.credentials.refresh_token,
       expires_at:
         (auth.credentials.expires_at && DateTime.from_unix!(auth.credentials.expires_at)) ||
-          DateTime.add(DateTime.utc_now(), 7200, :second),
-      email: auth.info.email
+          DateTime.add(DateTime.utc_now(), @seconds_in_hour, :second),
+      email: auth.info.email,
+      metadata: %{"instance_url" => instance_url}
     }
 
     case Accounts.find_or_create_salesforce_credential(user, credential_attrs) do

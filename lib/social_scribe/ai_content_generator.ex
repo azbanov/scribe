@@ -6,7 +6,7 @@ defmodule SocialScribe.AIContentGenerator do
   alias SocialScribe.Meetings
   alias SocialScribe.Automations
 
-  @gemini_model "gemini-2.0-flash-lite"
+  @gemini_model "gemini-2.5-flash-lite"
   @gemini_api_base_url "https://generativelanguage.googleapis.com/v1beta/models"
 
   @impl SocialScribe.AIContentGeneratorApi
@@ -115,7 +115,7 @@ defmodule SocialScribe.AIContentGenerator do
   end
 
   defp get_crm_fields(:salesforce) do
-    "firstname, lastname, email, phone, mobilephone, company, jobtitle, address, city, state, zip, country"
+    "salutation, firstname, lastname, email, phone, homephone, mobilephone, otherphone, fax, jobtitle, department, birthdate, assistant, assistantphone, leadsource, description, address, city, state, zip, country, otherstreet, othercity, otherstate, otherzip, othercountry"
   end
 
   defp parse_hubspot_suggestions(response) do

@@ -9,10 +9,10 @@ defmodule SocialScribe.SalesforceTokenRefresher do
 
   require Logger
 
-  @doc """
-  Ensures a credential has a valid (non-expired) token.
-  Returns {:ok, credential} if valid, or refreshes if expired.
-  """
+  @token_expiry_buffer_seconds 300
+  @default_expires_in 7200
+  @token_url "https://login.salesforce.com/services/oauth2/token"
+
   def ensure_valid_token(%UserCredential{} = credential) do
     if token_expired?(credential) do
       refresh_credential(credential)
@@ -21,66 +21,59 @@ defmodule SocialScribe.SalesforceTokenRefresher do
     end
   end
 
-  @doc """
-  Refreshes a Salesforce credential's access token using the refresh token.
-  """
+  def refresh_credential(%UserCredential{provider: "salesforce", refresh_token: nil}) do
+    Logger.error("Cannot refresh Salesforce token: no refresh token available")
+    {:error, :no_refresh_token}
+  end
+
+  def refresh_credential(%UserCredential{provider: "salesforce", refresh_token: ""}) do
+    Logger.error("Cannot refresh Salesforce token: no refresh token available")
+    {:error, :no_refresh_token}
+  end
+
   def refresh_credential(%UserCredential{provider: "salesforce"} = credential) do
     config = Application.get_env(:ueberauth, Ueberauth.Strategy.Salesforce.OAuth, [])
-    client_id = config[:client_id]
-    client_secret = config[:client_secret]
 
-    if is_nil(credential.refresh_token) or credential.refresh_token == "" do
-      Logger.error("Cannot refresh Salesforce token: no refresh token available")
-      {:error, :no_refresh_token}
-    else
-      body = %{
-        grant_type: "refresh_token",
-        refresh_token: credential.refresh_token,
-        client_id: client_id,
-        client_secret: client_secret
-      }
+    body = %{
+      grant_type: "refresh_token",
+      refresh_token: credential.refresh_token,
+      client_id: config[:client_id],
+      client_secret: config[:client_secret]
+    }
 
-      case Tesla.post(http_client(), "https://login.salesforce.com/services/oauth2/token", body) do
-        {:ok, %Tesla.Env{status: 200, body: response}} ->
-          update_credential_tokens(credential, response)
+    case Tesla.post(http_client(), @token_url, body) do
+      {:ok, %Tesla.Env{status: 200, body: response}} ->
+        update_credential_tokens(credential, response)
 
-        {:ok, %Tesla.Env{status: status, body: error_body}} ->
-          Logger.error("Salesforce token refresh failed: #{status} - #{inspect(error_body)}")
-          {:error, {:refresh_failed, status, error_body}}
+      {:ok, %Tesla.Env{status: status, body: error_body}} ->
+        Logger.error("Salesforce token refresh failed: #{status} - #{inspect(error_body)}")
+        {:error, {:refresh_failed, status, error_body}}
 
-        {:error, reason} ->
-          Logger.error("Salesforce token refresh HTTP error: #{inspect(reason)}")
-          {:error, {:http_error, reason}}
-      end
+      {:error, reason} ->
+        Logger.error("Salesforce token refresh HTTP error: #{inspect(reason)}")
+        {:error, {:http_error, reason}}
     end
   end
 
-  def refresh_credential(%UserCredential{} = _credential) do
+  def refresh_credential(%UserCredential{}) do
     Logger.error("Cannot refresh credential: not a Salesforce credential")
     {:error, :invalid_provider}
   end
 
   defp update_credential_tokens(credential, response) do
-    # Calculate new expiration time
-    # Salesforce doesn't return expires_in in refresh response, so we use a default
-    # Default 2 hours
-    expires_in = Map.get(response, "expires_in", 7200)
-    expires_at = DateTime.utc_now() |> DateTime.add(expires_in, :second) |> DateTime.to_unix()
-
-    # Salesforce may or may not return a new refresh token
-    # If not provided, keep the existing one
-    new_refresh_token = Map.get(response, "refresh_token", credential.refresh_token)
-
-    # Update instance URL if provided
-    instance_url = Map.get(response, "instance_url", credential.metadata["instance_url"])
-
-    updated_metadata = Map.put(credential.metadata || %{}, "instance_url", instance_url)
+    expires_in = Map.get(response, "expires_in", @default_expires_in)
+    current_metadata = credential.metadata || %{}
 
     updates = %{
       token: response["access_token"],
-      refresh_token: new_refresh_token,
-      expires_at: expires_at,
-      metadata: updated_metadata
+      refresh_token: Map.get(response, "refresh_token", credential.refresh_token),
+      expires_at: DateTime.utc_now() |> DateTime.add(expires_in, :second),
+      metadata:
+        Map.put(
+          current_metadata,
+          "instance_url",
+          Map.get(response, "instance_url", current_metadata["instance_url"])
+        )
     }
 
     case Accounts.update_user_credential(credential, updates) do
@@ -97,10 +90,8 @@ defmodule SocialScribe.SalesforceTokenRefresher do
   defp token_expired?(%UserCredential{expires_at: nil}), do: false
 
   defp token_expired?(%UserCredential{expires_at: expires_at}) do
-    now = DateTime.utc_now() |> DateTime.to_unix()
-    # Refresh if token expires within the next 5 minutes
-    buffer = 300
-    now >= expires_at - buffer
+    threshold = DateTime.utc_now() |> DateTime.add(-@token_expiry_buffer_seconds, :second)
+    DateTime.compare(expires_at, threshold) != :gt
   end
 
   defp http_client do

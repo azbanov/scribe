@@ -11,19 +11,18 @@ defmodule SocialScribe.Workers.SalesforceTokenRefresher do
 
   require Logger
 
+  @refresh_threshold_minutes 10
+
   @impl Oban.Worker
   def perform(_job) do
     Logger.info("Running Salesforce token refresh check...")
 
-    # Find all Salesforce credentials that expire within the next 10 minutes
-    now = DateTime.utc_now() |> DateTime.to_unix()
-    # 10 minutes
-    threshold = now + 600
+    threshold = DateTime.add(DateTime.utc_now(), @refresh_threshold_minutes, :minute)
 
     credentials =
       Accounts.list_credentials_by_provider("salesforce")
       |> Enum.filter(fn cred ->
-        cred.expires_at != nil and cred.expires_at <= threshold
+        cred.expires_at != nil and DateTime.compare(cred.expires_at, threshold) != :gt
       end)
 
     if Enum.empty?(credentials) do

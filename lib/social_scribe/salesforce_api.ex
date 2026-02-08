@@ -14,24 +14,62 @@ defmodule SocialScribe.SalesforceApi do
   # Standard Salesforce Contact fields
   @contact_fields [
     "Id",
+    "Salutation",
     "FirstName",
     "LastName",
     "Email",
     "Phone",
+    "HomePhone",
     "MobilePhone",
+    "OtherPhone",
+    "Fax",
     "Title",
+    "Department",
+    "Birthdate",
+    "AssistantName",
+    "AssistantPhone",
+    "LeadSource",
+    "Description",
     "MailingStreet",
     "MailingCity",
     "MailingState",
     "MailingPostalCode",
     "MailingCountry",
-    "AccountId",
-    "Account.Name"
+    "OtherStreet",
+    "OtherCity",
+    "OtherState",
+    "OtherPostalCode",
+    "OtherCountry"
   ]
 
-  defp client(access_token, instance_url) do
+  @sosl_special_chars [
+    "\\",
+    "?",
+    "&",
+    "|",
+    "!",
+    "{",
+    "}",
+    "[",
+    "]",
+    "(",
+    ")",
+    "^",
+    "~",
+    ":",
+    "\"",
+    "'"
+  ]
+
+  defp instance_url(%UserCredential{metadata: metadata}) when is_map(metadata) do
+    Map.get(metadata, "instance_url", "https://login.salesforce.com")
+  end
+
+  defp instance_url(_), do: "https://login.salesforce.com"
+
+  defp client(access_token, base_url) do
     Tesla.client([
-      {Tesla.Middleware.BaseUrl, instance_url},
+      {Tesla.Middleware.BaseUrl, base_url},
       Tesla.Middleware.JSON,
       {Tesla.Middleware.Headers,
        [
@@ -58,8 +96,10 @@ defmodule SocialScribe.SalesforceApi do
       params = [q: sosl_query]
 
       case Tesla.get(
-             client(cred.token, cred.metadata["instance_url"]),
-             "/services/data/v59.0/search", query: params) do
+             client(cred.token, instance_url(cred)),
+             "/services/data/v59.0/search",
+             query: params
+           ) do
         {:ok, %Tesla.Env{status: 200, body: %{"searchRecords" => results}}} ->
           contacts = Enum.map(results, &format_contact/1)
           {:ok, contacts}
@@ -83,14 +123,16 @@ defmodule SocialScribe.SalesforceApi do
   """
   def get_contact(%UserCredential{} = credential, contact_id) do
     with_token_refresh(credential, fn cred ->
-      fields_param = Enum.join(@contact_fields, ",")
-      url = "/services/data/v59.0/sobjects/Contact/#{contact_id}?fields=#{fields_param}"
+      soql_query =
+        "SELECT #{Enum.join(@contact_fields, ", ")} FROM Contact WHERE Id = '#{contact_id}' LIMIT 1"
 
-      case Tesla.get(client(cred.token, cred.metadata["instance_url"]), url) do
-        {:ok, %Tesla.Env{status: 200, body: body}} ->
-          {:ok, format_contact(body)}
+      case Tesla.get(client(cred.token, instance_url(cred)), "/services/data/v59.0/query",
+             query: [q: soql_query]
+           ) do
+        {:ok, %Tesla.Env{status: 200, body: %{"records" => [record | _]}}} ->
+          {:ok, format_contact(record)}
 
-        {:ok, %Tesla.Env{status: 404, body: _body}} ->
+        {:ok, %Tesla.Env{status: 200, body: %{"records" => []}}} ->
           {:error, :not_found}
 
         {:ok, %Tesla.Env{status: status, body: body}} ->
@@ -114,7 +156,7 @@ defmodule SocialScribe.SalesforceApi do
       salesforce_updates = convert_to_salesforce_fields(updates)
 
       case Tesla.patch(
-             client(cred.token, cred.metadata["instance_url"]),
+             client(cred.token, instance_url(cred)),
              "/services/data/v59.0/sobjects/Contact/#{contact_id}",
              salesforce_updates
            ) do
@@ -159,18 +201,32 @@ defmodule SocialScribe.SalesforceApi do
   defp format_contact(%{"Id" => id} = contact) do
     %{
       id: id,
+      salutation: contact["Salutation"],
       firstname: contact["FirstName"],
       lastname: contact["LastName"],
       email: contact["Email"],
       phone: contact["Phone"],
+      homephone: contact["HomePhone"],
       mobilephone: contact["MobilePhone"],
-      company: get_in(contact, ["Account", "Name"]),
+      otherphone: contact["OtherPhone"],
+      fax: contact["Fax"],
       jobtitle: contact["Title"],
+      department: contact["Department"],
+      birthdate: contact["Birthdate"],
+      assistant: contact["AssistantName"],
+      assistantphone: contact["AssistantPhone"],
+      leadsource: contact["LeadSource"],
+      description: contact["Description"],
       address: contact["MailingStreet"],
       city: contact["MailingCity"],
       state: contact["MailingState"],
       zip: contact["MailingPostalCode"],
       country: contact["MailingCountry"],
+      otherstreet: contact["OtherStreet"],
+      othercity: contact["OtherCity"],
+      otherstate: contact["OtherState"],
+      otherzip: contact["OtherPostalCode"],
+      othercountry: contact["OtherCountry"],
       display_name: format_display_name(contact)
     }
   end
@@ -194,19 +250,32 @@ defmodule SocialScribe.SalesforceApi do
   # Convert our internal field names to Salesforce field names
   defp convert_to_salesforce_fields(updates) do
     field_mapping = %{
+      "salutation" => "Salutation",
       "firstname" => "FirstName",
       "lastname" => "LastName",
       "email" => "Email",
       "phone" => "Phone",
+      "homephone" => "HomePhone",
       "mobilephone" => "MobilePhone",
-      # Company is on Account object, not Contact
-      "company" => nil,
+      "otherphone" => "OtherPhone",
+      "fax" => "Fax",
       "jobtitle" => "Title",
+      "department" => "Department",
+      "birthdate" => "Birthdate",
+      "assistant" => "AssistantName",
+      "assistantphone" => "AssistantPhone",
+      "leadsource" => "LeadSource",
+      "description" => "Description",
       "address" => "MailingStreet",
       "city" => "MailingCity",
       "state" => "MailingState",
       "zip" => "MailingPostalCode",
-      "country" => "MailingCountry"
+      "country" => "MailingCountry",
+      "otherstreet" => "OtherStreet",
+      "othercity" => "OtherCity",
+      "otherstate" => "OtherState",
+      "otherzip" => "OtherPostalCode",
+      "othercountry" => "OtherCountry"
     }
 
     updates
@@ -218,25 +287,10 @@ defmodule SocialScribe.SalesforceApi do
     |> Enum.into(%{})
   end
 
-  # Escape SOSL query special characters
   defp escape_sosl_query(query) do
-    query
-    |> String.replace("\\", "\\\\")
-    |> String.replace("?", "\\?")
-    |> String.replace("&", "\\&")
-    |> String.replace("|", "\\|")
-    |> String.replace("!", "\\!")
-    |> String.replace("{", "\\{")
-    |> String.replace("}", "\\}")
-    |> String.replace("[", "\\[")
-    |> String.replace("]", "\\]")
-    |> String.replace("(", "\\(")
-    |> String.replace(")", "\\)")
-    |> String.replace("^", "\\^")
-    |> String.replace("~", "\\~")
-    |> String.replace(":", "\\:")
-    |> String.replace("\"", "\\\"")
-    |> String.replace("'", "\\'")
+    Enum.reduce(@sosl_special_chars, query, fn char, acc ->
+      String.replace(acc, char, "\\#{char}")
+    end)
   end
 
   # Wrapper that handles token refresh on auth errors
