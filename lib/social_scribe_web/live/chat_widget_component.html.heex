@@ -1,17 +1,25 @@
-<div class="flex flex-col h-[calc(100vh-80px)] max-w-3xl mx-auto -my-8 bg-white border-x border-gray-200">
+<div class="flex flex-col h-full bg-white rounded-2xl overflow-hidden">
   <%!-- Header --%>
-  <div class="flex items-center justify-between px-8 pt-8 pb-2">
-    <h1 class="text-xl font-semibold text-slate-900">Ask Anything</h1>
-    <button class="text-gray-400 hover:text-gray-600">
-      <.icon name="hero-chevron-double-right" class="size-5" />
+  <div class="flex items-center justify-between px-5 pt-5 pb-2">
+    <h1 class="text-lg font-semibold text-slate-900">Ask Anything</h1>
+    <button
+      phx-click={
+        JS.toggle(to: "#chat-widget-popup")
+        |> JS.toggle(to: "#chat-widget-btn-open")
+        |> JS.toggle(to: "#chat-widget-btn-close")
+      }
+      class="text-gray-400 hover:text-gray-600"
+    >
+      <.icon name="hero-x-mark" class="size-5" />
     </button>
   </div>
 
   <%!-- Tabs --%>
-  <div class="flex items-center justify-between px-8 pb-3">
+  <div class="flex items-center justify-between px-5 pb-3">
     <div class="flex items-center gap-4">
       <button
         phx-click="switch_tab"
+        phx-target={@myself}
         phx-value-tab="chat"
         class={[
           "text-sm font-medium px-3 py-1 rounded-full",
@@ -23,6 +31,7 @@
       </button>
       <button
         phx-click="switch_tab"
+        phx-target={@myself}
         phx-value-tab="history"
         class={[
           "text-sm font-medium",
@@ -33,13 +42,13 @@
         History
       </button>
     </div>
-    <button phx-click="new_chat" class="text-gray-400 hover:text-gray-600">
+    <button phx-click="new_chat" phx-target={@myself} class="text-gray-400 hover:text-gray-600">
       <.icon name="hero-plus" class="size-5" />
     </button>
   </div>
 
   <%!-- Messages Area --%>
-  <div class="flex-1 overflow-y-auto px-8" id="chat-messages" phx-hook="ScrollBottom">
+  <div class="flex-1 overflow-y-auto px-5" id="chat-widget-messages" phx-hook="ScrollBottom">
     <%= if @active_tab == "chat" do %>
       <%!-- Timestamp separator --%>
       <%= if Enum.any?(@messages) do %>
@@ -56,8 +65,8 @@
       <div class="space-y-5">
         <div :for={message <- @messages}>
           <%= if message.role == :assistant do %>
-            <%!-- AI Message — plain text, no bubble --%>
-            <div class="text-[15px] leading-relaxed text-slate-800">
+            <%!-- AI Message --%>
+            <div class="text-sm leading-relaxed text-slate-800">
               {message.content}
               <%!-- Sources --%>
               <%= if Enum.any?(message.sources) do %>
@@ -81,16 +90,16 @@
                           <span class="text-[7px] text-white font-bold">A</span>
                         </span>
                     <% end %>
-                    <span class="truncate max-w-[150px]">{source.title}</span>
+                    <span class="truncate max-w-[120px]">{source.title}</span>
                   </span>
                 </div>
               <% end %>
             </div>
           <% else %>
-            <%!-- User Message — right-aligned bubble --%>
+            <%!-- User Message --%>
             <div class="flex justify-end">
-              <div class="bg-[#f5f5f0] rounded-2xl px-4 py-3 max-w-[75%]">
-                <p class="text-[15px] leading-relaxed text-slate-800">
+              <div class="bg-[#f5f5f0] rounded-2xl px-4 py-3 max-w-[80%]">
+                <p class="text-sm leading-relaxed text-slate-800">
                   <%= if @selected_contact do %>
                     <span class="inline-flex items-center gap-1 align-middle">
                       <span class="inline-flex w-5 h-5 rounded-full bg-indigo-100 items-center justify-center text-[9px] font-semibold text-indigo-700 flex-shrink-0">
@@ -130,7 +139,7 @@
   </div>
 
   <%!-- Input Area --%>
-  <div class="px-8 py-6">
+  <div class="px-5 py-4">
     <%!-- Contact search dropdown (above input) --%>
     <div :if={@contact_search_open} class="mb-2 relative">
       <div class="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
@@ -140,16 +149,18 @@
             placeholder="Search contacts..."
             value={@contact_query}
             phx-keyup="contact_search"
+            phx-target={@myself}
             phx-debounce="200"
             class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
             autofocus
           />
         </div>
         <%= if Enum.any?(@contact_results) do %>
-          <div class="max-h-48 overflow-y-auto border-t border-gray-100">
+          <div class="max-h-40 overflow-y-auto border-t border-gray-100">
             <button
               :for={contact <- @contact_results}
               phx-click="select_contact"
+              phx-target={@myself}
               phx-value-id={contact.id}
               phx-value-provider={contact.provider}
               class="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 text-left"
@@ -199,7 +210,7 @@
         ]}>
           {provider_label(@selected_contact.provider)}
         </span>
-        <button phx-click="clear_contact" class="hover:text-indigo-900">
+        <button phx-click="clear_contact" phx-target={@myself} class="hover:text-indigo-900">
           <.icon name="hero-x-mark" class="size-3" />
         </button>
       </span>
@@ -212,6 +223,7 @@
         <button
           type="button"
           phx-click="toggle_contact_search"
+          phx-target={@myself}
           class={[
             "inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2.5 py-1",
             Enum.any?(@credentials) && "text-gray-500 border-gray-300 hover:bg-gray-50",
@@ -227,13 +239,14 @@
       <%!-- Text input --%>
       <div class="px-3 py-2">
         <textarea
-          id="chat-input"
+          id="chat-widget-input"
           name="message"
           rows="2"
           placeholder="Ask anything about your meetings"
           disabled={@loading}
           class="w-full text-sm border-0 focus:ring-0 placeholder-gray-400 p-0 resize-none"
-          phx-hook="ChatInput"
+          phx-hook="ChatWidgetInput"
+          data-target={@myself}
         >{@input}</textarea>
       </div>
 
@@ -259,7 +272,7 @@
         </div>
         <button
           type="button"
-          phx-click={JS.dispatch("submit-chat", to: "#chat-input")}
+          phx-click={JS.dispatch("submit-chat", to: "#chat-widget-input")}
           class="flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
         >
           <.icon name="hero-arrow-up" class="size-4" />

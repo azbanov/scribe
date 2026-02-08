@@ -104,17 +104,21 @@ defmodule SocialScribe.Chat do
   end
 
   defp extract_sources(meetings, provider) do
-    app_source = %{title: "Scribe", provider: "app", timestamp: ""}
+    crm_source = %{title: provider_label(provider), provider: provider, timestamp: ""}
 
     meeting_sources =
       meetings
       |> Enum.take(5)
       |> Enum.map(fn meeting ->
-        %{title: meeting.title, provider: provider, timestamp: format_date(meeting.recorded_at)}
+        %{title: meeting.title, provider: "app", timestamp: format_date(meeting.recorded_at)}
       end)
 
-    [app_source | meeting_sources]
+    [crm_source | meeting_sources]
   end
+
+  defp provider_label("hubspot"), do: "HubSpot"
+  defp provider_label("salesforce"), do: "Salesforce"
+  defp provider_label(other), do: String.capitalize(other)
 
   defp format_date(nil), do: ""
 

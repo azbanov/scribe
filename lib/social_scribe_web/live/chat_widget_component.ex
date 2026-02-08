@@ -1,41 +1,58 @@
-defmodule SocialScribeWeb.ChatLive do
-  use SocialScribeWeb, :live_view
+defmodule SocialScribeWeb.ChatWidgetComponent do
+  use SocialScribeWeb, :live_component
 
   alias SocialScribe.Accounts
-  alias SocialScribe.Chat
-  require Logger
 
   @impl true
-  def mount(_params, _session, socket) do
-    user = socket.assigns.current_user
-    hubspot_credential = Accounts.get_user_hubspot_credential(user.id)
-    salesforce_credential = Accounts.get_user_salesforce_credential(user.id)
-
-    credentials =
-      [hubspot_credential, salesforce_credential]
-      |> Enum.reject(&is_nil/1)
-
-    welcome_message = %{
-      role: :assistant,
-      content: "I can answer questions about your meetings and CRM data – just ask!",
-      timestamp: DateTime.utc_now(),
-      sources: []
-    }
-
+  def update(%{new_message: msg}, socket) do
     socket =
       socket
-      |> assign(:page_title, "Ask Anything")
-      |> assign(:messages, [welcome_message])
-      |> assign(:input, "")
+      |> update(:messages, &(&1 ++ [msg]))
       |> assign(:loading, false)
-      |> assign(:credentials, credentials)
-      |> assign(:active_tab, "chat")
-      |> assign(:contact_search_open, false)
-      |> assign(:contact_query, "")
-      |> assign(:contact_results, [])
-      |> assign(:selected_contact, nil)
 
     {:ok, socket}
+  end
+
+  def update(%{search_results: results}, socket) do
+    {:ok, assign(socket, contact_results: results)}
+  end
+
+  def update(assigns, socket) do
+    socket =
+      case socket.assigns[:initialized] do
+        true ->
+          socket
+
+        _ ->
+          user = assigns.current_user
+          hubspot_credential = Accounts.get_user_hubspot_credential(user.id)
+          salesforce_credential = Accounts.get_user_salesforce_credential(user.id)
+
+          credentials =
+            [hubspot_credential, salesforce_credential]
+            |> Enum.reject(&is_nil/1)
+
+          welcome_message = %{
+            role: :assistant,
+            content: "I can answer questions about your meetings and CRM data – just ask!",
+            timestamp: DateTime.utc_now(),
+            sources: []
+          }
+
+          socket
+          |> assign(:initialized, true)
+          |> assign(:messages, [welcome_message])
+          |> assign(:input, "")
+          |> assign(:loading, false)
+          |> assign(:credentials, credentials)
+          |> assign(:active_tab, "chat")
+          |> assign(:contact_search_open, false)
+          |> assign(:contact_query, "")
+          |> assign(:contact_results, [])
+          |> assign(:selected_contact, nil)
+      end
+
+    {:ok, assign(socket, :current_user, assigns.current_user)}
   end
 
   @impl true
@@ -60,7 +77,14 @@ defmodule SocialScribeWeb.ChatLive do
           |> assign(:input, "")
           |> assign(:loading, true)
 
-        send(self(), {:generate_response, message, socket.assigns.selected_contact})
+        send(self(), {
+          :chat_widget_generate_response,
+          message,
+          socket.assigns.selected_contact,
+          socket.assigns.credentials,
+          socket.assigns.current_user
+        })
+
         {:noreply, socket}
     end
   end
@@ -76,7 +100,7 @@ defmodule SocialScribeWeb.ChatLive do
 
     case {String.length(query) >= 2, Enum.any?(socket.assigns.credentials)} do
       {true, true} ->
-        send(self(), {:search_contacts, query})
+        send(self(), {:chat_widget_search_contacts, query, socket.assigns.credentials})
         {:noreply, assign(socket, contact_query: query)}
 
       _ ->
@@ -137,85 +161,6 @@ defmodule SocialScribeWeb.ChatLive do
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, :active_tab, tab)}
   end
-
-  @impl true
-  def handle_info({:generate_response, question, contact}, socket) do
-    credential = find_credential(socket.assigns.credentials, contact)
-
-    result =
-      if contact && credential do
-        Chat.ask_question(question, contact, credential, socket.assigns.current_user)
-      else
-        {:error, :no_contact_selected}
-      end
-
-    socket =
-      case result do
-        {:ok, %{answer: answer, sources: sources}} ->
-          ai_msg = %{
-            role: :assistant,
-            content: answer,
-            timestamp: DateTime.utc_now(),
-            sources: sources
-          }
-
-          socket
-          |> update(:messages, &(&1 ++ [ai_msg]))
-          |> assign(:loading, false)
-
-        {:error, reason} ->
-          error_message =
-            case reason do
-              :no_contact_selected ->
-                "Please select a contact using the @ button before asking questions."
-
-              :unsupported_provider ->
-                "This CRM provider is not supported."
-
-              :api_error ->
-                "There was an error connecting to your CRM. Please check your connection."
-
-              _ ->
-                "I'm sorry, I encountered an error: #{inspect(reason)}. Please try again."
-            end
-
-          error_msg = %{
-            role: :assistant,
-            content: error_message,
-            timestamp: DateTime.utc_now(),
-            sources: []
-          }
-
-          socket
-          |> update(:messages, &(&1 ++ [error_msg]))
-          |> assign(:loading, false)
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:search_contacts, query}, socket) do
-    results =
-      socket.assigns.credentials
-      |> Enum.flat_map(fn credential ->
-        case Chat.search_contacts(credential, query) do
-          {:ok, contacts} ->
-            Enum.map(contacts, &Map.put(&1, :provider, credential.provider))
-
-          {:error, _reason} ->
-            []
-        end
-      end)
-
-    {:noreply, assign(socket, contact_results: results)}
-  end
-
-  defp find_credential(credentials, %{provider: provider}) do
-    Enum.find(credentials, &(&1.provider == provider))
-  end
-
-  defp find_credential(_, _), do: nil
 
   defp format_time(%DateTime{} = dt) do
     hour = dt.hour

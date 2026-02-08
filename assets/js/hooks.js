@@ -13,7 +13,7 @@ Hooks.Clipboard = {
   },
 };
 
-Hooks.ChatInput = {
+Hooks.ChatWidgetInput = {
   mounted() {
     this.el.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -28,7 +28,8 @@ Hooks.ChatInput = {
   submitMessage() {
     const value = this.el.value.trim();
     if (value !== "") {
-      this.pushEvent("send_message", { message: value });
+      const target = this.el.dataset.target;
+      this.pushEventTo(target, "send_message", { message: value });
       this.el.value = "";
     }
   },

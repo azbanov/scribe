@@ -103,7 +103,7 @@ defmodule SocialScribe.ChatTest do
                Chat.ask_question("Tell me about John", contact, credential, user)
 
       assert answer == "John Doe is a key contact from Acme Corp."
-      assert [%{title: "Scribe"} | _] = sources
+      assert [%{title: "HubSpot", provider: "hubspot"} | _] = sources
       assert Enum.any?(sources, fn s -> s.title == meeting.title end)
     end
 
