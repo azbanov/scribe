@@ -55,6 +55,11 @@ defmodule SocialScribe.AIContentGenerator do
     generate_crm_suggestions(meeting, :salesforce)
   end
 
+  @impl SocialScribe.AIContentGeneratorApi
+  def generate_chat_response(prompt) do
+    call_gemini(prompt)
+  end
+
   defp generate_crm_suggestions(meeting, crm_type) do
     case Meetings.generate_prompt_for_meeting(meeting) do
       {:error, reason} ->
