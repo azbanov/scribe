@@ -6,7 +6,7 @@ defmodule SocialScribe.AIContentGenerator do
   alias SocialScribe.Meetings
   alias SocialScribe.Automations
 
-  @gemini_model "gemini-2.5-flash"
+  @gemini_model "gemini-2.5-flash-lite"
   @gemini_api_base_url "https://generativelanguage.googleapis.com/v1beta/models"
 
   @impl SocialScribe.AIContentGeneratorApi
@@ -53,6 +53,11 @@ defmodule SocialScribe.AIContentGenerator do
   @impl SocialScribe.AIContentGeneratorApi
   def generate_salesforce_suggestions(meeting) do
     generate_crm_suggestions(meeting, :salesforce)
+  end
+
+  @impl SocialScribe.AIContentGeneratorApi
+  def generate_chat_response(prompt) do
+    call_gemini(prompt)
   end
 
   defp generate_crm_suggestions(meeting, crm_type) do

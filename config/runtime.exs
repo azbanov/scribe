@@ -81,14 +81,25 @@ if config_env() == :prod do
         password: userinfo_pass,
         database: database,
         socket_dir: socket_dir,
-        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+        queue_target: 5000,
+        queue_interval: 1000,
+        timeout: 15_000,
+        ownership_timeout: 10_000,
+        show_sensitive_data_on_connection_error: true
       ]
     else
-      # Standard TCP connection
+      # Standard TCP connection - optimized for Fly.io
       [
         url: database_url,
-        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-        socket_options: maybe_ipv6
+        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+        queue_target: 5000,
+        queue_interval: 1000,
+        timeout: 15_000,
+        ownership_timeout: 10_000,
+        socket_options: maybe_ipv6,
+        show_sensitive_data_on_connection_error: true,
+        ssl: false
       ]
     end
 
