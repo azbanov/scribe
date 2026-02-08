@@ -96,8 +96,8 @@ defmodule SocialScribe.SalesforceTokenRefresher do
 
   defp http_client do
     Tesla.client([
-      Tesla.Middleware.JSON,
-      Tesla.Middleware.FormUrlencoded
+      Tesla.Middleware.FormUrlencoded,
+      Tesla.Middleware.DecodeJson
     ])
   end
 end

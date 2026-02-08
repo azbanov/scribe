@@ -279,11 +279,8 @@ defmodule SocialScribe.SalesforceApi do
     }
 
     updates
-    |> Enum.map(fn {key, value} ->
-      salesforce_field = Map.get(field_mapping, key, key)
-      {salesforce_field, value}
-    end)
-    |> Enum.filter(fn {key, _value} -> key != nil end)
+    |> Enum.filter(fn {key, _value} -> Map.has_key?(field_mapping, key) end)
+    |> Enum.map(fn {key, value} -> {Map.fetch!(field_mapping, key), value} end)
     |> Enum.into(%{})
   end
 
