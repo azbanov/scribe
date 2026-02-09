@@ -104,9 +104,7 @@ defmodule SocialScribe.SalesforceApi do
           contacts = Enum.map(results, &format_contact/1)
           {:ok, contacts}
 
-        {:ok, %Tesla.Env{status: 200, body: body}} ->
-          # Empty search results
-          Logger.debug("Salesforce search returned 200 but no searchRecords: #{inspect(body)}")
+        {:ok, %Tesla.Env{status: 200, body: _body}} ->
           {:ok, []}
 
         {:ok, %Tesla.Env{status: status, body: body}} ->
