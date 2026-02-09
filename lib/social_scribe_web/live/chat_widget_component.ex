@@ -25,12 +25,7 @@ defmodule SocialScribeWeb.ChatWidgetComponent do
 
         _ ->
           user = assigns.current_user
-          hubspot_credential = Accounts.get_user_hubspot_credential(user.id)
-          salesforce_credential = Accounts.get_user_salesforce_credential(user.id)
-
-          credentials =
-            [hubspot_credential, salesforce_credential]
-            |> Enum.reject(&is_nil/1)
+          credentials = Accounts.get_user_crm_credentials(user.id)
 
           welcome_message = %{
             role: :assistant,

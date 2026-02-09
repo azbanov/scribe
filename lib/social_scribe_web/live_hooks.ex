@@ -87,7 +87,8 @@ defmodule SocialScribeWeb.LiveHooks do
           {:ok, contacts} ->
             Enum.map(contacts, &Map.put(&1, :provider, credential.provider))
 
-          {:error, _reason} ->
+          {:error, reason} ->
+            Logger.error("Contact search failed for #{credential.provider}: #{inspect(reason)}")
             []
         end
       end)
