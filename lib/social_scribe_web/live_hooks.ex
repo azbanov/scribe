@@ -80,6 +80,10 @@ defmodule SocialScribeWeb.LiveHooks do
   end
 
   defp handle_chat_widget_info({:chat_widget_search_contacts, query, credentials}, socket) do
+    Logger.debug(
+      "Contact search: query=#{query}, credentials=#{inspect(Enum.map(credentials, & &1.provider))}"
+    )
+
     results =
       credentials
       |> Enum.flat_map(fn credential ->
@@ -87,7 +91,8 @@ defmodule SocialScribeWeb.LiveHooks do
           {:ok, contacts} ->
             Enum.map(contacts, &Map.put(&1, :provider, credential.provider))
 
-          {:error, _reason} ->
+          {:error, reason} ->
+            Logger.error("Contact search failed for #{credential.provider}: #{inspect(reason)}")
             []
         end
       end)

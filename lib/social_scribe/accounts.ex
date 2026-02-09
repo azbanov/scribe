@@ -331,14 +331,36 @@ defmodule SocialScribe.Accounts do
   Gets the user's HubSpot credential if one exists.
   """
   def get_user_hubspot_credential(user_id) do
-    Repo.get_by(UserCredential, user_id: user_id, provider: "hubspot")
+    from(c in UserCredential,
+      where: c.user_id == ^user_id and c.provider == "hubspot",
+      order_by: [desc: c.updated_at],
+      limit: 1
+    )
+    |> Repo.one()
   end
 
   @doc """
   Gets the user's Salesforce credential if one exists.
   """
   def get_user_salesforce_credential(user_id) do
-    Repo.get_by(UserCredential, user_id: user_id, provider: "salesforce")
+    from(c in UserCredential,
+      where: c.user_id == ^user_id and c.provider == "salesforce",
+      order_by: [desc: c.updated_at],
+      limit: 1
+    )
+    |> Repo.one()
+  end
+
+  @doc """
+  Gets all CRM credentials (hubspot, salesforce) for a user.
+  Returns all connected accounts, not just one per provider.
+  """
+  def get_user_crm_credentials(user_id) do
+    from(c in UserCredential,
+      where: c.user_id == ^user_id and c.provider in ["hubspot", "salesforce"],
+      order_by: [desc: c.updated_at]
+    )
+    |> Repo.all()
   end
 
   defp get_user_by_oauth_uid(provider, uid) do

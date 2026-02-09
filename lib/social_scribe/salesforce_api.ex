@@ -104,8 +104,9 @@ defmodule SocialScribe.SalesforceApi do
           contacts = Enum.map(results, &format_contact/1)
           {:ok, contacts}
 
-        {:ok, %Tesla.Env{status: 200, body: _body}} ->
+        {:ok, %Tesla.Env{status: 200, body: body}} ->
           # Empty search results
+          Logger.debug("Salesforce search returned 200 but no searchRecords: #{inspect(body)}")
           {:ok, []}
 
         {:ok, %Tesla.Env{status: status, body: body}} ->
@@ -292,20 +293,25 @@ defmodule SocialScribe.SalesforceApi do
 
   # Wrapper that handles token refresh on auth errors
   defp with_token_refresh(%UserCredential{} = credential, api_call) do
-    with {:ok, credential} <- SalesforceTokenRefresher.ensure_valid_token(credential) do
-      case api_call.(credential) do
-        {:error, {:api_error, status, body}} when status in [401, 403] ->
-          if is_token_error?(body) do
-            Logger.info("Salesforce token expired, refreshing and retrying...")
-            retry_with_fresh_token(credential, api_call)
-          else
-            Logger.error("Salesforce API error: #{status} - #{inspect(body)}")
-            {:error, {:api_error, status, body}}
-          end
+    case SalesforceTokenRefresher.ensure_valid_token(credential) do
+      {:ok, credential} ->
+        case api_call.(credential) do
+          {:error, {:api_error, status, body}} when status in [401, 403] ->
+            if is_token_error?(body) do
+              Logger.info("Salesforce token expired, refreshing and retrying...")
+              retry_with_fresh_token(credential, api_call)
+            else
+              Logger.error("Salesforce API error: #{status} - #{inspect(body)}")
+              {:error, {:api_error, status, body}}
+            end
 
-        other ->
-          other
-      end
+          other ->
+            other
+        end
+
+      {:error, reason} ->
+        Logger.error("Salesforce token refresh failed in with_token_refresh: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
