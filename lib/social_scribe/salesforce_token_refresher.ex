@@ -87,11 +87,11 @@ defmodule SocialScribe.SalesforceTokenRefresher do
     end
   end
 
-  defp token_expired?(%UserCredential{expires_at: nil}), do: false
+  defp token_expired?(%UserCredential{expires_at: nil}), do: true
 
   defp token_expired?(%UserCredential{expires_at: expires_at}) do
-    threshold = DateTime.utc_now() |> DateTime.add(-@token_expiry_buffer_seconds, :second)
-    DateTime.compare(expires_at, threshold) != :gt
+    threshold = DateTime.utc_now() |> DateTime.add(@token_expiry_buffer_seconds, :second)
+    DateTime.compare(expires_at, threshold) == :lt
   end
 
   defp http_client do

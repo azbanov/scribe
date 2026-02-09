@@ -37,7 +37,7 @@ defmodule SocialScribe.SalesforceTokenRefresherTest do
       assert result.token == credential.token
     end
 
-    test "returns credential unchanged when expires_at is nil" do
+    test "attempts refresh when expires_at is nil" do
       user = user_fixture()
 
       credential =
@@ -48,10 +48,9 @@ defmodule SocialScribe.SalesforceTokenRefresherTest do
       # Set expires_at to nil directly on the struct (bypassing changeset validation)
       credential = %{credential | expires_at: nil}
 
-      {:ok, result} = SalesforceTokenRefresher.ensure_valid_token(credential)
-
-      assert result.id == credential.id
-      assert result.token == credential.token
+      # With nil expires_at, the token is considered expired and a refresh is attempted.
+      # Since we don't have valid Salesforce credentials in test, it will fail.
+      assert {:error, _reason} = SalesforceTokenRefresher.ensure_valid_token(credential)
     end
   end
 
