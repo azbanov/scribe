@@ -41,6 +41,10 @@ config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
   client_id: System.get_env("HUBSPOT_CLIENT_ID"),
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET")
 
+config :ueberauth, Ueberauth.Strategy.Salesforce.OAuth,
+  client_id: System.get_env("SALESFORCE_CLIENT_ID"),
+  client_secret: System.get_env("SALESFORCE_CLIENT_SECRET")
+
 if System.get_env("PHX_SERVER") do
   config :social_scribe, SocialScribeWeb.Endpoint, server: true
 end
@@ -58,32 +62,46 @@ if config_env() == :prod do
   # Parse DATABASE_URL for Cloud SQL Unix socket connections
   # Format: ecto://user:pass@localhost/db?socket=/cloudsql/project:region:instance
   uri = URI.parse(database_url)
-  socket_dir = if uri.query do
-    uri.query
-    |> URI.decode_query()
-    |> Map.get("socket")
-  end
 
-  repo_config = if socket_dir do
-    # For Cloud SQL socket connections, configure manually (don't use URL with host)
-    [userinfo_user, userinfo_pass] = String.split(uri.userinfo || ":", ":")
-    database = String.trim_leading(uri.path || "", "/")
+  socket_dir =
+    if uri.query do
+      uri.query
+      |> URI.decode_query()
+      |> Map.get("socket")
+    end
 
-    [
-      username: userinfo_user,
-      password: userinfo_pass,
-      database: database,
-      socket_dir: socket_dir,
-      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
-    ]
-  else
-    # Standard TCP connection
-    [
-      url: database_url,
-      pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-      socket_options: maybe_ipv6
-    ]
-  end
+  repo_config =
+    if socket_dir do
+      # For Cloud SQL socket connections, configure manually (don't use URL with host)
+      [userinfo_user, userinfo_pass] = String.split(uri.userinfo || ":", ":")
+      database = String.trim_leading(uri.path || "", "/")
+
+      [
+        username: userinfo_user,
+        password: userinfo_pass,
+        database: database,
+        socket_dir: socket_dir,
+        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+        queue_target: 5000,
+        queue_interval: 1000,
+        timeout: 15_000,
+        ownership_timeout: 10_000,
+        show_sensitive_data_on_connection_error: true
+      ]
+    else
+      # Standard TCP connection - optimized for Fly.io
+      [
+        url: database_url,
+        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
+        queue_target: 5000,
+        queue_interval: 1000,
+        timeout: 15_000,
+        ownership_timeout: 10_000,
+        socket_options: maybe_ipv6,
+        show_sensitive_data_on_connection_error: true,
+        ssl: false
+      ]
+    end
 
   config :social_scribe, SocialScribe.Repo, repo_config
 

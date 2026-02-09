@@ -125,12 +125,65 @@
           fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M18.164 7.93V5.084a2.198 2.198 0 001.267-1.984v-.066A2.2 2.2 0 0017.231.834h-.066a2.2 2.2 0 00-2.2 2.2v.066c0 .873.517 1.626 1.267 1.984V7.93a6.152 6.152 0 00-3.267 1.643l-6.6-5.133a2.726 2.726 0 00.067-.582A2.726 2.726 0 003.706 1.13a2.726 2.726 0 00-2.726 2.727 2.726 2.726 0 002.726 2.727c.483 0 .938-.126 1.333-.347l6.486 5.047a6.195 6.195 0 00-.556 2.572 6.18 6.18 0 00.56 2.572l-1.57 1.223a2.457 2.457 0 00-1.49-.504 2.468 2.468 0 00-2.468 2.468 2.468 2.468 0 002.468 2.468 2.468 2.468 0 002.468-2.468c0-.29-.05-.568-.142-.826l1.558-1.213a6.2 6.2 0 003.812 1.312 6.2 6.2 0 006.199-6.2 6.2 6.2 0 00-4.2-5.856zm-4.2 9.193a3.337 3.337 0 110-6.674 3.337 3.337 0 010 6.674z"/>
+          <path d="M18.164 7.93V5.084a2.198 2.198 0 001.267-1.984v-.066A2.2 2.2 0 0017.231.834h-.066a2.2 2.2 0 00-2.2 2.2v.066c0 .873.517 1.626 1.267 1.984V7.93a6.152 6.152 0 00-3.267 1.643l-6.6-5.133a2.726 2.726 0 00.067-.582A2.726 2.726 0 003.706 1.13a2.726 2.726 0 00-2.726 2.727 2.726 2.726 0 002.726 2.727c.483 0 .938-.126 1.333-.347l6.486 5.047a6.195 6.195 0 00-.556 2.572 6.18 6.18 0 00.56 2.572l-1.57 1.223a2.457 2.457 0 00-1.49-.504 2.468 2.468 0 00-2.468 2.468 2.468 2.468 0 002.468 2.468 2.468 2.468 0 002.468-2.468c0-.29-.05-.568-.142-.826l1.558-1.213a6.2 6.2 0 003.812 1.312 6.2 6.2 0 006.199-6.2 6.2 6.2 0 00-4.2-5.856zm-4.2 9.193a3.337 3.337 0 110-6.674 3.337 3.337 0 010 6.674z" />
         </svg>
         <%= if Enum.empty?(@hubspot_accounts) do %>
           Connect HubSpot
         <% else %>
           Connect another HubSpot Account
+        <% end %>
+      </.link>
+    </div>
+  </div>
+
+  <div class="bg-white  shadow-xl rounded-lg p-6 md:p-8">
+    <h2 class="text-2xl font-semibold mb-6 text-slate-700 ">
+      Connected Salesforce Accounts
+    </h2>
+
+    <%= if not Enum.empty?(@salesforce_accounts) do %>
+      <ul class="space-y-4 mb-8">
+        <li
+          :for={account <- @salesforce_accounts}
+          class="flex justify-between items-center p-4 bg-slate-50  rounded-md shadow"
+        >
+          <div>
+            <p class="font-medium text-slate-700 ">
+              Salesforce Account
+            </p>
+            <p class="text-sm text-slate-500 ">
+              UID: {account.uid}
+              <%= if account.email do %>
+                ({account.email})
+              <% end %>
+            </p>
+          </div>
+        </li>
+      </ul>
+    <% else %>
+      <p class="mb-8 text-slate-600 ">
+        You haven't connected any Salesforce accounts yet.
+      </p>
+    <% end %>
+
+    <div>
+      <.link
+        href={~p"/auth/salesforce?prompt=login"}
+        method="get"
+        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#00a1e0] hover:bg-[#0089c2] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00a1e0]"
+      >
+        <svg
+          class="-ml-1 mr-3 h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M10.006 5.413a4.186 4.186 0 013.536 6.474 5.043 5.043 0 012.551 4.391c0 2.788-2.264 5.048-5.052 5.048H6.637a.346.346 0 01-.346-.346v-3.463c0-.191.155-.346.346-.346h.692a.346.346 0 01.346.346v2.771h3.366a4.357 4.357 0 004.359-4.355 4.357 4.357 0 00-4.359-4.355h-.692a.346.346 0 01-.346-.346v-.692c0-.192.155-.346.346-.346h.692a3.494 3.494 0 003.492-3.492 3.494 3.494 0 00-3.492-3.492H7.675v10.406a.346.346 0 01-.346.346h-.692a.346.346 0 01-.346-.346V2.674c0-.191.155-.346.346-.346h4.369z" />
+        </svg>
+        <%= if Enum.empty?(@salesforce_accounts) do %>
+          Connect Salesforce
+        <% else %>
+          Connect another Salesforce Account
         <% end %>
       </.link>
     </div>

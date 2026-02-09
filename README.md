@@ -73,7 +73,7 @@ Social Scribe is a powerful Elixir and Phoenix LiveView application designed to 
 * **Backend:** Elixir, Phoenix LiveView
 * **Database:** PostgreSQL
 * **Background Jobs:** Oban
-* **Authentication:** Ueberauth (for Google, LinkedIn, Facebook, HubSpot OAuth)
+* **Authentication:** Ueberauth (for Google, LinkedIn, Facebook, HubSpot, Salesforce OAuth)
 * **Meeting Transcription:** Recall.ai API
 * **AI Content Generation:** Google Gemini API (Flash models)
 * **Frontend:** Tailwind CSS, Heroicons (via `tailwind.config.js`)
@@ -129,6 +129,9 @@ Follow these steps to get SocialScribe running on your local machine.
         * `HUBSPOT_CLIENT_ID`: Your HubSpot App Client ID.
         * `HUBSPOT_CLIENT_SECRET`: Your HubSpot App Client Secret.
         * `HUBSPOT_REDIRECT_URI`: `"http://localhost:4000/auth/hubspot/callback"`
+        * `SALESFORCE_CLIENT_ID`: Your Salesforce Connected App Client ID.
+        * `SALESFORCE_CLIENT_SECRET`: Your Salesforce Connected App Client Secret.
+        * `SALESFORCE_REDIRECT_URI`: `"http://localhost:4000/auth/salesforce/callback"`
 
 4.  **Start the Phoenix Server:**
     ```bash
@@ -184,6 +187,76 @@ Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 * **Selective Updates:** Checkbox per field allows selective updates; "Update HubSpot" button disabled until at least one field selected
 * **Form Submission:** Batch-updates selected contact properties via `HubspotApi.update_contact`
 * **Click-away Handler:** Closes dropdown without clearing selection
+
+---
+
+## 🔗 Salesforce Integration
+
+### Salesforce OAuth Integration
+
+* **Custom Ueberauth Strategy with PKCE:** Implemented in `lib/ueberauth/strategy/salesforce.ex`
+* **OAuth 2.0 Flow:** Handles authorization code flow with PKCE (Proof Key for Code Exchange) using Salesforce's `/oauth/authorize` and `/oauth/v1/token` endpoints
+* **Credential Storage:** Credentials stored in `user_credentials` table with `provider: "salesforce"`, including `token`, `refresh_token`, `expires_at`, and `instance_url` in metadata
+* **Token Refresh:**
+    * `SalesforceTokenRefresher` Oban cron worker periodically checks for tokens expiring within 10 minutes and proactively refreshes them
+    * Internal `with_token_refresh/2` wrapper automatically detects 401/403 errors with `INVALID_SESSION_ID` or `EXPIRED_ACCESS_TOKEN` codes, refreshes the token, and retries the request once
+    * Refresh failures are logged; users are prompted to re-authenticate if refresh token is invalid
+
+### Salesforce API Client
+
+* **Tesla-based HTTP Client:** Uses Salesforce REST API v59.0 with SOSL/SOQL queries
+* **Contact Search:** SOSL text search across contact name fields (`FIND {query*} IN NAME FIELDS RETURNING Contact(...)`) returning up to 10 results
+* **Contact Fetch:** SOQL query to retrieve a single contact with all standard fields
+* **Contact Update:** PATCH request to update selected fields with automatic field name conversion (internal lowercase to Salesforce PascalCase)
+* **Behaviour Pattern:** `SalesforceApiBehaviour` enables dependency injection and test mocking
+
+### Salesforce Modal UI
+
+* **LiveView Component:** Located at `lib/social_scribe_web/live/meeting_live/salesforce_modal_component.ex`
+* **Contact Search:** Debounced input triggers Salesforce API search, results displayed in dropdown
+* **AI Suggestions:** Fetched via `SalesforceSuggestions.generate_suggestions` which calls Gemini with meeting transcript context to extract contact field updates
+* **Suggestion Cards:** Each card displays:
+    * Field label
+    * Current value (strikethrough)
+    * Arrow
+    * Suggested value
+    * Context explaining where the value was found in the transcript
+* **Selective Updates:** Checkbox per field allows selective updates; "Update Salesforce" button disabled until at least one field is selected
+* **Batch Updates:** Selected fields are applied via `SalesforceApi.apply_updates`
+
+---
+
+## 💬 Chat Widget
+
+### Overview
+
+An AI-powered chat assistant that answers questions about CRM contacts using meeting transcript context and real-time CRM data. Supports both HubSpot and Salesforce as data sources.
+
+### Chat Widget Component
+
+* **LiveView Component:** Located at `lib/social_scribe_web/live/chat_widget_component.ex`
+* **Tabs:** "Chat" for conversation and "History" for past interactions
+* **Contact Selection:** Users mention a contact via the `@` button, triggering a search across all connected CRM providers
+* **Source Badges:** AI responses display source attribution badges (H = HubSpot, S = Salesforce, A = App) indicating where the information came from
+* **Loading State:** Animated indicator while AI generates responses
+
+### Chat Context Module
+
+* **Located at:** `lib/social_scribe/chat.ex`
+* **`ask_question/4`:** Orchestrates the full chat flow:
+    1. Fetches full contact data from the connected CRM (HubSpot or Salesforce)
+    2. Retrieves relevant meeting transcripts for the user
+    3. Builds a comprehensive prompt combining contact data, meeting context, and the user's question
+    4. Calls Google Gemini API to generate an answer
+    5. Returns the answer with source attribution
+* **`search_contacts/2`:** Routes contact search to the appropriate CRM API based on credential provider
+
+### LiveHooks Integration
+
+* **Located at:** `lib/social_scribe_web/live_hooks.ex`
+* **`chat_widget_generate_response`:** Receives question, contact, and credentials; calls `Chat.ask_question/4` and sends the AI response back to the widget
+* **`chat_widget_search_contacts`:** Aggregates contact search results from all connected CRM providers
+* **Error Handling:** Returns user-friendly messages for common errors (no contact selected, unsupported provider, API errors)
 
 ---
 

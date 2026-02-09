@@ -65,3 +65,32 @@
     </main>
   </div>
 </div>
+
+<%!-- Floating Chat Widget --%>
+<div
+  id="chat-widget-popup"
+  class="hidden fixed bottom-24 right-6 w-[400px] h-[calc(100vh-150px)] max-h-[800px] z-50 shadow-2xl rounded-2xl border border-gray-200"
+>
+  <.live_component
+    module={SocialScribeWeb.ChatWidgetComponent}
+    id="chat-widget"
+    current_user={@current_user}
+  />
+</div>
+
+<%!-- Floating Chat Button --%>
+<button
+  phx-click={
+    JS.toggle(to: "#chat-widget-popup")
+    |> JS.toggle(to: "#chat-widget-btn-open")
+    |> JS.toggle(to: "#chat-widget-btn-close")
+  }
+  class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-slate-800 text-white shadow-lg hover:bg-slate-700 flex items-center justify-center transition-colors"
+>
+  <span id="chat-widget-btn-open">
+    <.icon name="hero-chat-bubble-left-right" class="size-6" />
+  </span>
+  <span id="chat-widget-btn-close" class="hidden">
+    <.icon name="hero-chevron-down" class="size-6" />
+  </span>
+</button>

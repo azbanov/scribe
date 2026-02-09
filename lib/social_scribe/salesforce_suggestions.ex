@@ -1,45 +1,56 @@
-defmodule SocialScribe.HubspotSuggestions do
+defmodule SocialScribe.SalesforceSuggestions do
   @moduledoc """
-  Generates and formats HubSpot contact update suggestions by combining
-  AI-extracted data with existing HubSpot contact information.
+  Generates and formats Salesforce contact update suggestions by combining
+  AI-extracted data with existing Salesforce contact information.
   """
 
   alias SocialScribe.AIContentGeneratorApi
-  alias SocialScribe.HubspotApi
+  alias SocialScribe.SalesforceApi
   alias SocialScribe.Accounts.UserCredential
 
   @field_labels %{
+    "salutation" => "Salutation",
     "firstname" => "First Name",
     "lastname" => "Last Name",
     "email" => "Email",
     "phone" => "Phone",
+    "homephone" => "Home Phone",
     "mobilephone" => "Mobile Phone",
-    "company" => "Company",
+    "otherphone" => "Other Phone",
+    "fax" => "Fax",
     "jobtitle" => "Job Title",
+    "department" => "Department",
+    "birthdate" => "Birthdate",
+    "assistant" => "Assistant",
+    "assistantphone" => "Assistant Phone",
+    "leadsource" => "Lead Source",
+    "description" => "Description",
     "address" => "Address",
     "city" => "City",
     "state" => "State",
     "zip" => "ZIP Code",
     "country" => "Country",
-    "website" => "Website",
-    "linkedin_url" => "LinkedIn",
-    "twitter_handle" => "Twitter"
+    "otherstreet" => "Other Street",
+    "othercity" => "Other City",
+    "otherstate" => "Other State",
+    "otherzip" => "Other ZIP Code",
+    "othercountry" => "Other Country"
   }
 
   @doc """
-  Generates suggested updates for a HubSpot contact based on a meeting transcript.
+  Generates suggested updates for a Salesforce contact based on a meeting transcript.
 
   Returns a list of suggestion maps, each containing:
-  - field: the HubSpot field name
+  - field: the Salesforce field name
   - label: human-readable field label
-  - current_value: the existing value in HubSpot (or nil)
+  - current_value: the existing value in Salesforce (or nil)
   - new_value: the AI-suggested value
   - context: explanation of where this was found in the transcript
   - apply: boolean indicating whether to apply this update (default false)
   """
   def generate_suggestions(%UserCredential{} = credential, contact_id, meeting) do
-    with {:ok, contact} <- HubspotApi.get_contact(credential, contact_id),
-         {:ok, ai_suggestions} <- AIContentGeneratorApi.generate_hubspot_suggestions(meeting) do
+    with {:ok, contact} <- SalesforceApi.get_contact(credential, contact_id),
+         {:ok, ai_suggestions} <- AIContentGeneratorApi.generate_salesforce_suggestions(meeting) do
       suggestions =
         ai_suggestions
         |> Enum.map(fn suggestion ->
@@ -67,7 +78,7 @@ defmodule SocialScribe.HubspotSuggestions do
   Useful when contact hasn't been selected yet.
   """
   def generate_suggestions_from_meeting(meeting) do
-    case AIContentGeneratorApi.generate_hubspot_suggestions(meeting) do
+    case AIContentGeneratorApi.generate_salesforce_suggestions(meeting) do
       {:ok, ai_suggestions} ->
         suggestions =
           ai_suggestions
