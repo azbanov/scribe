@@ -308,7 +308,7 @@ defmodule SocialScribe.Accounts do
   HubSpot uses a single credential per hub_id (account).
   """
   def find_or_create_hubspot_credential(user, attrs) do
-    case get_user_credential(user, "hubspot", attrs.uid) do
+    case get_user_credential(user, "hubspot") do
       nil ->
         create_user_credential(attrs)
 
@@ -317,8 +317,12 @@ defmodule SocialScribe.Accounts do
     end
   end
 
+  @doc """
+  Finds or creates a Salesforce credential for a user.
+  Only one Salesforce account is allowed per user.
+  """
   def find_or_create_salesforce_credential(user, attrs) do
-    case get_user_credential(user, "salesforce", attrs.uid) do
+    case get_user_credential(user, "salesforce") do
       nil ->
         create_user_credential(attrs)
 

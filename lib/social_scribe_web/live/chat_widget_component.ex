@@ -14,7 +14,7 @@ defmodule SocialScribeWeb.ChatWidgetComponent do
   end
 
   def update(%{search_results: results}, socket) do
-    {:ok, assign(socket, contact_results: results)}
+    {:ok, assign(socket, contact_results: results, searching_contacts: false)}
   end
 
   def update(assigns, socket) do
@@ -45,6 +45,7 @@ defmodule SocialScribeWeb.ChatWidgetComponent do
           |> assign(:contact_query, "")
           |> assign(:contact_results, [])
           |> assign(:selected_contact, nil)
+          |> assign(:searching_contacts, false)
       end
 
     {:ok, assign(socket, :current_user, assigns.current_user)}
@@ -96,10 +97,11 @@ defmodule SocialScribeWeb.ChatWidgetComponent do
     case {String.length(query) >= 2, Enum.any?(socket.assigns.credentials)} do
       {true, true} ->
         send(self(), {:chat_widget_search_contacts, query, socket.assigns.credentials})
-        {:noreply, assign(socket, contact_query: query)}
+        {:noreply, assign(socket, contact_query: query, searching_contacts: true)}
 
       _ ->
-        {:noreply, assign(socket, contact_query: query, contact_results: [])}
+        {:noreply,
+         assign(socket, contact_query: query, contact_results: [], searching_contacts: false)}
     end
   end
 

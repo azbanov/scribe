@@ -185,7 +185,18 @@
           </div>
         <% end %>
         <div
-          :if={@contact_query != "" && Enum.empty?(@contact_results)}
+          :if={@searching_contacts}
+          class="px-3 py-2 text-sm text-gray-400 flex items-center gap-2"
+        >
+          <span class="w-3 h-3 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin">
+          </span>
+          Searching...
+        </div>
+        <div
+          :if={
+            !@searching_contacts && String.length(@contact_query) >= 2 &&
+              Enum.empty?(@contact_results)
+          }
           class="px-3 py-2 text-sm text-gray-400"
         >
           No contacts found
