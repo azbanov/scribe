@@ -28,7 +28,7 @@ defmodule SocialScribeWeb.ChatWidgetTest do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
       view
-      |> element("button", "Select contact")
+      |> element("button", "Add context")
       |> render_click()
 
       view
@@ -60,7 +60,7 @@ defmodule SocialScribeWeb.ChatWidgetTest do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
       view
-      |> element("button", "Select contact")
+      |> element("button", "Add context")
       |> render_click()
 
       view
@@ -80,7 +80,7 @@ defmodule SocialScribeWeb.ChatWidgetTest do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
       view
-      |> element("button", "Select contact")
+      |> element("button", "Add context")
       |> render_click()
 
       view
@@ -96,7 +96,7 @@ defmodule SocialScribeWeb.ChatWidgetTest do
       {:ok, view, _html} = live(conn, ~p"/dashboard/settings")
 
       view
-      |> element("button", "Select contact")
+      |> element("button", "Add context")
       |> render_click()
 
       view

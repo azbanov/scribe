@@ -15,7 +15,10 @@ defmodule SocialScribe.SalesforceTokenRefresher do
 
   def ensure_valid_token(%UserCredential{} = credential) do
     if token_expired?(credential) do
-      refresh_credential(credential)
+      # Reload from DB to get the latest refresh token
+      # (it may have been rotated by a background worker or prior refresh)
+      fresh_credential = SocialScribe.Accounts.get_user_credential!(credential.id)
+      refresh_credential(fresh_credential)
     else
       {:ok, credential}
     end
