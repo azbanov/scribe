@@ -314,7 +314,11 @@ defmodule SocialScribe.SalesforceApi do
   end
 
   defp retry_with_fresh_token(credential, api_call) do
-    case SalesforceTokenRefresher.refresh_credential(credential) do
+    # Reload credential from DB to get the latest refresh token
+    # (it may have been rotated by a prior refresh or background worker)
+    fresh_credential = SocialScribe.Accounts.get_user_credential!(credential.id)
+
+    case SalesforceTokenRefresher.refresh_credential(fresh_credential) do
       {:ok, refreshed_credential} ->
         case api_call.(refreshed_credential) do
           {:error, {:api_error, status, body}} ->
