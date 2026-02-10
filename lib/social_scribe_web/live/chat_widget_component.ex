@@ -9,6 +9,7 @@ defmodule SocialScribeWeb.ChatWidgetComponent do
       socket
       |> update(:messages, &(&1 ++ [msg]))
       |> assign(:loading, false)
+      |> push_event("chat-loading", %{loading: false})
 
     {:ok, socket}
   end
@@ -72,6 +73,7 @@ defmodule SocialScribeWeb.ChatWidgetComponent do
           |> update(:messages, &(&1 ++ [user_msg]))
           |> assign(:input, "")
           |> assign(:loading, true)
+          |> push_event("chat-loading", %{loading: true})
 
         send(self(), {
           :chat_widget_generate_response,

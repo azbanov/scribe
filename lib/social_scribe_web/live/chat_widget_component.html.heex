@@ -42,9 +42,14 @@
         History
       </button>
     </div>
-    <button phx-click="new_chat" phx-target={@myself} class="text-gray-400 hover:text-gray-600">
-      <.icon name="hero-plus" class="size-5" />
-    </button>
+    <div class="flex items-center gap-2">
+      <button type="button" class="text-gray-400 hover:text-gray-600" title="Collapse">
+        <.icon name="hero-chevron-double-right" class="size-5" />
+      </button>
+      <button phx-click="new_chat" phx-target={@myself} class="text-gray-400 hover:text-gray-600">
+        <.icon name="hero-plus" class="size-5" />
+      </button>
+    </div>
   </div>
 
   <%!-- Messages Area --%>
@@ -66,7 +71,7 @@
         <div :for={message <- @messages}>
           <%= if message.role == :assistant do %>
             <%!-- AI Message --%>
-            <div class="text-sm leading-relaxed text-slate-800">
+            <div class="text-base leading-relaxed text-slate-800">
               {message.content}
               <%!-- Sources --%>
               <%= if Enum.any?(message.sources) do %>
@@ -99,7 +104,7 @@
             <%!-- User Message --%>
             <div class="flex justify-end">
               <div class="bg-[#f5f5f0] rounded-2xl px-4 py-3 max-w-[80%]">
-                <p class="text-sm leading-relaxed text-slate-800">
+                <p class="text-base leading-relaxed text-slate-800">
                   <%= if @selected_contact do %>
                     <span class="inline-flex items-center gap-1 align-middle">
                       <span class="inline-flex w-5 h-5 rounded-full bg-indigo-100 items-center justify-center text-[9px] font-semibold text-indigo-700 flex-shrink-0">
@@ -243,28 +248,27 @@
           disabled={Enum.empty?(@credentials)}
         >
           <span>@</span>
-          <span>Select contact</span>
+          <span>Add context</span>
         </button>
       </div>
 
       <%!-- Text input --%>
-      <div class="px-3 py-2">
+      <div class="px-3 py-2" id="chat-widget-input-wrapper" phx-update="ignore">
         <textarea
           id="chat-widget-input"
           name="message"
           rows="2"
           placeholder="Ask anything about your meetings"
-          disabled={@loading}
           class="w-full text-sm border-0 focus:ring-0 placeholder-gray-400 p-0 resize-none"
           phx-hook="ChatWidgetInput"
           data-target={@myself}
-        >{@input}</textarea>
+        ></textarea>
       </div>
 
       <%!-- Bottom bar: Sources + Send --%>
       <div class="flex items-center justify-between px-3 pb-3">
-        <div class="flex items-center gap-1.5">
-          <span class="text-xs text-gray-400">Sources</span>
+        <div class="flex items-center gap-0.5">
+          <span class="text-xs text-gray-400 mr-1">Sources</span>
           <span class="w-4 h-4 rounded-full bg-slate-800 inline-flex items-center justify-center flex-shrink-0">
             <span class="w-1 h-1 bg-white rounded-full"></span>
           </span>

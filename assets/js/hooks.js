@@ -24,6 +24,12 @@ Hooks.ChatWidgetInput = {
     this.el.addEventListener("submit-chat", () => {
       this.submitMessage();
     });
+    this.handleEvent("chat-loading", ({ loading }) => {
+      this.el.disabled = loading;
+      if (!loading) {
+        this.el.focus();
+      }
+    });
   },
   submitMessage() {
     const value = this.el.value.trim();
@@ -31,6 +37,7 @@ Hooks.ChatWidgetInput = {
       const target = this.el.dataset.target;
       this.pushEventTo(target, "send_message", { message: value });
       this.el.value = "";
+      this.el.focus();
     }
   },
 };
